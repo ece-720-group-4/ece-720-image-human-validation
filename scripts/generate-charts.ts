@@ -15,6 +15,7 @@ import { createCanvas } from "canvas";
 import { put } from "@vercel/blob";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
+import { eq } from "drizzle-orm";
 import * as schema from "../src/db/schema";
 
 const WIDTH = 800;
@@ -212,16 +213,24 @@ async function main() {
   const db = drizzle(sql, { schema });
   const rng = seededRandom(seed);
 
-  // Seed injection_texts table and collect IDs
+  // Seed injection_texts table (upsert by content to avoid duplicates on re-runs)
   console.log("Seeding injection texts...");
   const injectionTextRows: { id: number; content: string }[] = [];
   for (const entry of INJECTED_TEXTS) {
-    const [inserted] = await db
-      .insert(schema.injectionTexts)
-      .values({ content: entry.content, label: entry.label })
-      .returning();
-    injectionTextRows.push({ id: inserted.id, content: entry.content });
-    console.log(`  Injection text #${inserted.id}: "${entry.label}"`);
+    const existing = await db.query.injectionTexts.findFirst({
+      where: eq(schema.injectionTexts.content, entry.content),
+    });
+    if (existing) {
+      injectionTextRows.push({ id: existing.id, content: existing.content });
+      console.log(`  Injection text #${existing.id}: "${entry.label}" (exists)`);
+    } else {
+      const [inserted] = await db
+        .insert(schema.injectionTexts)
+        .values({ content: entry.content, label: entry.label })
+        .returning();
+      injectionTextRows.push({ id: inserted.id, content: entry.content });
+      console.log(`  Injection text #${inserted.id}: "${entry.label}" (created)`);
+    }
   }
 
   let totalGenerated = 0;
