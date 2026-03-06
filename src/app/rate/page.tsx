@@ -8,17 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 const VIEWING_TIME_MS = 2000;
+const PRELOAD_WINDOW = 5;
 
 interface ImageData {
   id: number;
   blobUrl: string;
   filename: string;
-}
-
-interface ApiResponse {
-  done: boolean;
-  image: ImageData | null;
-  progress?: { answered: number; total: number };
 }
 
 type Phase =
@@ -28,6 +23,16 @@ type Phase =
   | "done"
   | "invalid_key"
   | "no_images";
+
+function blobSrc(blobUrl: string) {
+  return `/api/blob?url=${encodeURIComponent(blobUrl)}`;
+}
+
+function preloadBlob(url: string) {
+  if (typeof window === "undefined") return;
+  const img = new window.Image();
+  img.src = url;
+}
 
 export default function RatePage() {
   return (
@@ -49,20 +54,60 @@ function RateContent() {
   const key = searchParams.get("key");
 
   const [phase, setPhase] = useState<Phase>("instructions");
-  const [currentImage, setCurrentImage] = useState<ImageData | null>(null);
-  const [progress, setProgress] = useState({ answered: 0, total: 0 });
-  const [timeLeft, setTimeLeft] = useState(VIEWING_TIME_MS);
-  const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(VIEWING_TIME_MS);
+
+  const queueRef = useRef<ImageData[]>([]);
+  const indexRef = useRef(0);
+  const [currentImage, setCurrentImage] = useState<ImageData | null>(null);
+  const [total, setTotal] = useState(0);
+  const [answeredBase, setAnsweredBase] = useState(0);
+  const [localAnswered, setLocalAnswered] = useState(0);
 
   const viewingStartRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const viewingKeyRef = useRef(0);
+  const [viewingKey, setViewingKey] = useState(0);
+  const preloadedUpToRef = useRef(0);
 
-  const fetchNextImage = useCallback(async () => {
+  const preloadAhead = useCallback((fromIndex: number, queue: ImageData[]) => {
+    const end = Math.min(fromIndex + PRELOAD_WINDOW, queue.length);
+    for (let i = preloadedUpToRef.current; i < end; i++) {
+      preloadBlob(blobSrc(queue[i].blobUrl));
+    }
+    preloadedUpToRef.current = Math.max(preloadedUpToRef.current, end);
+  }, []);
+
+  const showImageAtIndex = useCallback(
+    (idx: number) => {
+      const queue = queueRef.current;
+      if (idx >= queue.length) {
+        router.push(`/rate/complete?key=${encodeURIComponent(key!)}`);
+        setPhase("done");
+        return;
+      }
+
+      if (timerRef.current) clearInterval(timerRef.current);
+      setCurrentImage(queue[idx]);
+      setTimeLeft(VIEWING_TIME_MS);
+      viewingStartRef.current = Date.now();
+      viewingKeyRef.current += 1;
+      setViewingKey(viewingKeyRef.current);
+      setPhase("viewing");
+
+      preloadAhead(idx + 1, queue);
+    },
+    [key, router, preloadAhead]
+  );
+
+  const loadAllImages = useCallback(async () => {
     if (!key) return;
     setPhase("loading");
 
-    const res = await fetch(`/api/images?key=${encodeURIComponent(key)}`);
+    const res = await fetch(
+      `/api/images/all?key=${encodeURIComponent(key)}`
+    );
 
     if (res.status === 404) {
       setErrorMessage("The rater key you provided does not exist.");
@@ -76,25 +121,30 @@ function RateContent() {
       return;
     }
 
-    const data: ApiResponse = await res.json();
+    const data = await res.json();
+    const imgs: ImageData[] = data.images;
 
-    if (data.progress && data.progress.total === 0) {
+    if (data.total === 0) {
       setPhase("no_images");
       return;
     }
 
-    if (data.done || !data.image) {
-      setPhase("done");
+    if (imgs.length === 0) {
       router.push(`/rate/complete?key=${encodeURIComponent(key)}`);
+      setPhase("done");
       return;
     }
 
-    setCurrentImage(data.image);
-    if (data.progress) setProgress(data.progress);
-    setTimeLeft(VIEWING_TIME_MS);
-    setPhase("viewing");
-    viewingStartRef.current = Date.now();
-  }, [key, router]);
+    setTotal(data.total);
+    setAnsweredBase(data.answered);
+    setLocalAnswered(0);
+    queueRef.current = imgs;
+    indexRef.current = 0;
+    preloadedUpToRef.current = 0;
+
+    preloadAhead(0, imgs);
+    showImageAtIndex(0);
+  }, [key, router, preloadAhead, showImageAtIndex]);
 
   useEffect(() => {
     if (phase !== "viewing") return;
@@ -112,15 +162,15 @@ function RateContent() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [phase]);
+  }, [phase, viewingKey]);
 
-  const handleAnswer = async (noticedAnomaly: boolean) => {
+  const handleAnswer = (noticedAnomaly: boolean) => {
     if (!currentImage || !key || submitting) return;
     setSubmitting(true);
 
     const responseTimeMs = Date.now() - viewingStartRef.current;
 
-    await fetch("/api/responses", {
+    fetch("/api/responses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -131,8 +181,11 @@ function RateContent() {
       }),
     });
 
+    const nextIdx = indexRef.current + 1;
+    indexRef.current = nextIdx;
+    setLocalAnswered((prev) => prev + 1);
     setSubmitting(false);
-    fetchNextImage();
+    showImageAtIndex(nextIdx);
   };
 
   if (!key) {
@@ -223,7 +276,7 @@ function RateContent() {
               Please complete the evaluation in one sitting if possible. There
               is no way to pause and resume.
             </p>
-            <Button size="lg" onClick={() => fetchNextImage()}>
+            <Button size="lg" onClick={() => loadAllImages()}>
               Begin Evaluation
             </Button>
           </CardContent>
@@ -232,16 +285,16 @@ function RateContent() {
     );
   }
 
+  const answered = answeredBase + localAnswered;
   const timerPercent = (timeLeft / VIEWING_TIME_MS) * 100;
-  const progressPercent =
-    progress.total > 0 ? (progress.answered / progress.total) * 100 : 0;
+  const progressPercent = total > 0 ? (answered / total) * 100 : 0;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-4">
       <div className="w-full max-w-2xl space-y-2">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            Image {progress.answered + 1} of {progress.total}
+            Image {answered + 1} of {total}
           </span>
           <span>{Math.round(progressPercent)}% complete</span>
         </div>
@@ -252,7 +305,7 @@ function RateContent() {
         <CardContent className="flex flex-col items-center gap-4 pt-6">
           {phase === "loading" && (
             <div className="flex h-80 w-full items-center justify-center">
-              <p className="text-muted-foreground">Loading next image...</p>
+              <p className="text-muted-foreground">Loading images...</p>
             </div>
           )}
 
@@ -267,19 +320,27 @@ function RateContent() {
                     </p>
                   </>
                 ) : (
-                  <p className="text-center text-sm text-muted-foreground">
+                  <p className="text-center text-lg font-medium">
                     Did you notice any anomalous or unusual text?
                   </p>
                 )}
               </div>
-              <div className="flex h-80 w-full items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/api/blob?url=${encodeURIComponent(currentImage.blobUrl)}`}
-                  alt="Chart to evaluate"
-                  className="max-h-full max-w-full object-contain"
-                />
+
+              <div className="flex h-80 w-full items-center justify-center rounded-md border bg-muted/30">
+                {timeLeft > 0 ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={blobSrc(currentImage.blobUrl)}
+                    alt="Chart to evaluate"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Time&apos;s up! Did you spot anything unusual?
+                  </p>
+                )}
               </div>
+
               <div className="flex gap-4">
                 <Button
                   size="lg"
