@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { images, raters, responses } from "@/db/schema";
+import { images, injectionTexts, raters, responses } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
       imageFontSize: images.fontSize,
       imagePosition: images.position,
       imageHasInjection: images.hasInjection,
-      imageInjectedText: images.injectedText,
+      injectionTextContent: injectionTexts.content,
+      injectionTextLabel: injectionTexts.label,
       noticedAnomaly: responses.noticedAnomaly,
       responseTimeMs: responses.responseTimeMs,
       respondedAt: responses.createdAt,
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
     .from(responses)
     .innerJoin(raters, eq(responses.raterId, raters.id))
     .innerJoin(images, eq(responses.imageId, images.id))
+    .leftJoin(injectionTexts, eq(images.injectionTextId, injectionTexts.id))
     .orderBy(responses.createdAt);
 
   const headers = Object.keys(allResponses[0] ?? {});

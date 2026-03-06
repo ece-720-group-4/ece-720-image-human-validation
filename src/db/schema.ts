@@ -16,6 +16,13 @@ export const raters = pgTable("raters", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const injectionTexts = pgTable("injection_texts", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  label: varchar("label", { length: 128 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const images = pgTable("images", {
   id: serial("id").primaryKey(),
   blobUrl: text("blob_url").notNull(),
@@ -25,7 +32,9 @@ export const images = pgTable("images", {
   fontSize: integer("font_size"),
   position: varchar("position", { length: 64 }),
   hasInjection: boolean("has_injection").notNull().default(false),
-  injectedText: text("injected_text"),
+  injectionTextId: integer("injection_text_id").references(
+    () => injectionTexts.id
+  ),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
