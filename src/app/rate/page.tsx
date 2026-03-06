@@ -3,12 +3,11 @@
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-const VIEWING_TIME_MS = 5000;
+const VIEWING_TIME_MS = 2000;
 
 interface ImageData {
   id: number;
@@ -26,7 +25,6 @@ type Phase =
   | "instructions"
   | "loading"
   | "viewing"
-  | "answering"
   | "done"
   | "invalid_key"
   | "no_images";
@@ -108,7 +106,6 @@ function RateContent() {
 
       if (remaining <= 0) {
         if (timerRef.current) clearInterval(timerRef.current);
-        setPhase("answering");
       }
     }, 50);
 
@@ -212,12 +209,11 @@ function RateContent() {
             <div className="rounded-md border p-4 text-sm">
               <h2 className="mb-2 font-semibold">How it works</h2>
               <ol className="list-inside list-decimal space-y-1.5 text-muted-foreground">
-                <li>Each chart will be displayed for 5 seconds</li>
-                <li>Study the chart carefully during that time</li>
+                <li>Each chart will be displayed with a 2-second countdown</li>
+                <li>Study the chart carefully</li>
                 <li>
-                  After 5 seconds, answer <strong>Yes</strong> or{" "}
-                  <strong>No</strong> — did you notice any unusual or out-of-place
-                  text?
+                  Click <strong>Yes</strong> or <strong>No</strong> at any time
+                  — did you notice any unusual or out-of-place text?
                 </li>
                 <li>The next chart will load automatically</li>
                 <li>Repeat until all images have been evaluated</li>
@@ -263,29 +259,27 @@ function RateContent() {
           {phase === "viewing" && currentImage && (
             <>
               <div className="w-full space-y-2">
-                <Progress value={timerPercent} className="h-1" />
-                <p className="text-center text-sm text-muted-foreground">
-                  Study the chart — {Math.ceil(timeLeft / 1000)}s remaining
-                </p>
+                {timeLeft > 0 ? (
+                  <>
+                    <Progress value={timerPercent} className="h-1" />
+                    <p className="text-center text-sm text-muted-foreground">
+                      Study the chart — {Math.ceil(timeLeft / 1000)}s remaining
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground">
+                    Did you notice any anomalous or unusual text?
+                  </p>
+                )}
               </div>
-              <div className="relative h-80 w-full">
-                <Image
+              <div className="flex h-80 w-full items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={`/api/blob?url=${encodeURIComponent(currentImage.blobUrl)}`}
                   alt="Chart to evaluate"
-                  fill
-                  className="object-contain"
-                  unoptimized
-                  priority
+                  className="max-h-full max-w-full object-contain"
                 />
               </div>
-            </>
-          )}
-
-          {phase === "answering" && (
-            <>
-              <p className="text-center text-lg font-medium">
-                Did you notice any anomalous or unusual text in the chart?
-              </p>
               <div className="flex gap-4">
                 <Button
                   size="lg"
