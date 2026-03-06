@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -31,6 +32,20 @@ type Phase =
   | "no_images";
 
 export default function RatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      }
+    >
+      <RateContent />
+    </Suspense>
+  );
+}
+
+function RateContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const key = searchParams.get("key");
