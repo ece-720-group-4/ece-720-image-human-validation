@@ -21,18 +21,26 @@ interface ApiResponse {
   progress?: { answered: number; total: number };
 }
 
-type Phase = "loading" | "viewing" | "answering" | "done";
+type Phase =
+  | "instructions"
+  | "loading"
+  | "viewing"
+  | "answering"
+  | "done"
+  | "invalid_key"
+  | "no_images";
 
 export default function RatePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const key = searchParams.get("key");
 
-  const [phase, setPhase] = useState<Phase>("loading");
+  const [phase, setPhase] = useState<Phase>("instructions");
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null);
   const [progress, setProgress] = useState({ answered: 0, total: 0 });
   const [timeLeft, setTimeLeft] = useState(VIEWING_TIME_MS);
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const viewingStartRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -42,7 +50,25 @@ export default function RatePage() {
     setPhase("loading");
 
     const res = await fetch(`/api/images?key=${encodeURIComponent(key)}`);
+
+    if (res.status === 404) {
+      setErrorMessage("The rater key you provided does not exist.");
+      setPhase("invalid_key");
+      return;
+    }
+
+    if (!res.ok) {
+      setErrorMessage("Something went wrong. Please try again later.");
+      setPhase("invalid_key");
+      return;
+    }
+
     const data: ApiResponse = await res.json();
+
+    if (data.progress && data.progress.total === 0) {
+      setPhase("no_images");
+      return;
+    }
 
     if (data.done || !data.image) {
       setPhase("done");
@@ -56,11 +82,6 @@ export default function RatePage() {
     setPhase("viewing");
     viewingStartRef.current = Date.now();
   }, [key, router]);
-
-  useEffect(() => {
-    if (!key) return;
-    fetchNextImage();
-  }, [key, fetchNextImage]);
 
   useEffect(() => {
     if (phase !== "viewing") return;
@@ -116,6 +137,90 @@ export default function RatePage() {
     );
   }
 
+  if (phase === "invalid_key") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="max-w-md">
+          <CardContent className="flex flex-col items-center gap-4 pt-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+              <span className="text-2xl text-destructive">!</span>
+            </div>
+            <h1 className="text-xl font-bold">Invalid Key</h1>
+            <p className="text-muted-foreground">{errorMessage}</p>
+            <p className="text-sm text-muted-foreground">
+              Please check that you are using the correct link. If you believe
+              this is an error, contact the researcher who provided your link.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (phase === "no_images") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="max-w-md">
+          <CardContent className="flex flex-col items-center gap-4 pt-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <span className="text-2xl">📭</span>
+            </div>
+            <h1 className="text-xl font-bold">No Images Available</h1>
+            <p className="text-muted-foreground">
+              There are currently no images to evaluate. The study may not have
+              been set up yet, or the image set is being prepared.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Please try again later or contact the researcher for more
+              information.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (phase === "instructions") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="max-w-lg">
+          <CardContent className="flex flex-col gap-5 pt-6">
+            <h1 className="text-2xl font-bold">
+              ECE 720 — Image Validation Study
+            </h1>
+            <p className="text-muted-foreground">
+              Thank you for participating in this research study. You will be
+              shown a series of chart images one at a time. Your task is to
+              determine whether each chart contains any anomalous or unusual
+              text.
+            </p>
+            <div className="rounded-md border p-4 text-sm">
+              <h2 className="mb-2 font-semibold">How it works</h2>
+              <ol className="list-inside list-decimal space-y-1.5 text-muted-foreground">
+                <li>Each chart will be displayed for 5 seconds</li>
+                <li>Study the chart carefully during that time</li>
+                <li>
+                  After 5 seconds, answer <strong>Yes</strong> or{" "}
+                  <strong>No</strong> — did you notice any unusual or out-of-place
+                  text?
+                </li>
+                <li>The next chart will load automatically</li>
+                <li>Repeat until all images have been evaluated</li>
+              </ol>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Please complete the evaluation in one sitting if possible. There
+              is no way to pause and resume.
+            </p>
+            <Button size="lg" onClick={() => fetchNextImage()}>
+              Begin Evaluation
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const timerPercent = (timeLeft / VIEWING_TIME_MS) * 100;
   const progressPercent =
     progress.total > 0 ? (progress.answered / progress.total) * 100 : 0;
@@ -150,7 +255,7 @@ export default function RatePage() {
               </div>
               <div className="relative h-80 w-full">
                 <Image
-                  src={currentImage.blobUrl}
+                  src={`/api/blob?url=${encodeURIComponent(currentImage.blobUrl)}`}
                   alt="Chart to evaluate"
                   fill
                   className="object-contain"

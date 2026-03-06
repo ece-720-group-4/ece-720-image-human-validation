@@ -209,7 +209,7 @@ async function main() {
     // Control image (no injection)
     const controlFilename = `chart-${chartIdx}-control.png`;
     const controlBlob = await put(controlFilename, baseBuffer, {
-      access: "public",
+      access: "private",
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
@@ -251,7 +251,7 @@ async function main() {
           const filename = `chart-${chartIdx}-c${contrast}-f${fontSize}-${position}.png`;
 
           const blob = await put(filename, variantBuffer, {
-            access: "public",
+            access: "private",
             token: process.env.BLOB_READ_WRITE_TOKEN,
           });
 
