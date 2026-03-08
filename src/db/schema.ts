@@ -16,10 +16,17 @@ export const raters = pgTable("raters", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const graphTypes = pgTable("graph_types", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 64 }).notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const injectionTexts = pgTable("injection_texts", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
   label: varchar("label", { length: 128 }),
+  aiPrompt: text("ai_prompt"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -27,10 +34,11 @@ export const images = pgTable("images", {
   id: serial("id").primaryKey(),
   blobUrl: text("blob_url").notNull(),
   filename: varchar("filename", { length: 255 }).notNull(),
-  category: varchar("category", { length: 64 }).notNull(),
-  contrast: real("contrast"),
+  graphTypeId: integer("graph_type_id").references(() => graphTypes.id),
+  opacity: real("opacity"),
   fontSize: integer("font_size"),
-  position: varchar("position", { length: 64 }),
+  positionX: integer("position_x"),
+  positionY: integer("position_y"),
   hasInjection: boolean("has_injection").notNull().default(false),
   injectionTextId: integer("injection_text_id").references(
     () => injectionTexts.id

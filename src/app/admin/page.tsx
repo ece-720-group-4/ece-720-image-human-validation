@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { images, raters, responses } from "@/db/schema";
+import { graphTypes, images, raters, responses } from "@/db/schema";
 import { eq, sql, count } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,17 +24,11 @@ export default async function AdminPage({ searchParams }: Props) {
     redirect("/");
   }
 
-  const totalImages = await db
-    .select({ value: count() })
-    .from(images);
+  const totalImages = await db.select({ value: count() }).from(images);
 
-  const totalResponses = await db
-    .select({ value: count() })
-    .from(responses);
+  const totalResponses = await db.select({ value: count() }).from(responses);
 
-  const totalRaters = await db
-    .select({ value: count() })
-    .from(raters);
+  const totalRaters = await db.select({ value: count() }).from(raters);
 
   const raterStats = await db
     .select({
@@ -47,29 +41,43 @@ export default async function AdminPage({ searchParams }: Props) {
     .groupBy(raters.id, raters.key, raters.name)
     .orderBy(raters.key);
 
-  const categoryStats = await db
+  const injectionStats = await db
     .select({
-      category: images.category,
       hasInjection: images.hasInjection,
       totalShown: count(responses.id),
-      noticedCount: sql<number>`sum(case when ${responses.noticedAnomaly} = true then 1 else 0 end)`,
+      noticedCount:
+        sql<number>`sum(case when ${responses.noticedAnomaly} = true then 1 else 0 end)`,
     })
     .from(images)
     .leftJoin(responses, eq(images.id, responses.imageId))
-    .groupBy(images.category, images.hasInjection)
-    .orderBy(images.category);
+    .groupBy(images.hasInjection)
+    .orderBy(images.hasInjection);
 
-  const contrastStats = await db
+  const opacityStats = await db
     .select({
-      contrast: images.contrast,
+      opacity: images.opacity,
       totalShown: count(responses.id),
-      noticedCount: sql<number>`sum(case when ${responses.noticedAnomaly} = true then 1 else 0 end)`,
+      noticedCount:
+        sql<number>`sum(case when ${responses.noticedAnomaly} = true then 1 else 0 end)`,
     })
     .from(images)
     .innerJoin(responses, eq(images.id, responses.imageId))
     .where(eq(images.hasInjection, true))
-    .groupBy(images.contrast)
-    .orderBy(images.contrast);
+    .groupBy(images.opacity)
+    .orderBy(images.opacity);
+
+  const graphTypeStats = await db
+    .select({
+      graphType: graphTypes.name,
+      totalShown: count(responses.id),
+      noticedCount:
+        sql<number>`sum(case when ${responses.noticedAnomaly} = true then 1 else 0 end)`,
+    })
+    .from(images)
+    .innerJoin(responses, eq(images.id, responses.imageId))
+    .leftJoin(graphTypes, eq(images.graphTypeId, graphTypes.id))
+    .groupBy(graphTypes.name)
+    .orderBy(graphTypes.name);
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -146,12 +154,11 @@ export default async function AdminPage({ searchParams }: Props) {
         <Card>
           <CardContent className="pt-6">
             <h2 className="mb-4 text-xl font-semibold">
-              Detection by Category
+              Detection by Injection Status
             </h2>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Category</TableHead>
                   <TableHead>Injection</TableHead>
                   <TableHead className="text-right">Shown</TableHead>
                   <TableHead className="text-right">Noticed</TableHead>
@@ -159,12 +166,13 @@ export default async function AdminPage({ searchParams }: Props) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {categoryStats.map((c, i) => (
+                {injectionStats.map((c, i) => (
                   <TableRow key={i}>
-                    <TableCell>{c.category}</TableCell>
                     <TableCell>
-                      <Badge variant={c.hasInjection ? "default" : "secondary"}>
-                        {c.hasInjection ? "Yes" : "No"}
+                      <Badge
+                        variant={c.hasInjection ? "default" : "secondary"}
+                      >
+                        {c.hasInjection ? "Injected" : "Control"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">{c.totalShown}</TableCell>
@@ -191,21 +199,62 @@ export default async function AdminPage({ searchParams }: Props) {
         <Card>
           <CardContent className="pt-6">
             <h2 className="mb-4 text-xl font-semibold">
-              Detection by Contrast Level (Injected Only)
+              Detection by Opacity Level (Injected Only)
             </h2>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Contrast</TableHead>
+                  <TableHead>Opacity</TableHead>
                   <TableHead className="text-right">Shown</TableHead>
                   <TableHead className="text-right">Noticed</TableHead>
                   <TableHead className="text-right">Detection Rate</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contrastStats.map((c, i) => (
+                {opacityStats.map((c, i) => (
                   <TableRow key={i}>
-                    <TableCell>{c.contrast?.toFixed(1) ?? "—"}</TableCell>
+                    <TableCell>{c.opacity?.toFixed(2) ?? "—"}</TableCell>
+                    <TableCell className="text-right">{c.totalShown}</TableCell>
+                    <TableCell className="text-right">
+                      {Number(c.noticedCount ?? 0)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {Number(c.totalShown) > 0
+                        ? Math.round(
+                            (Number(c.noticedCount ?? 0) /
+                              Number(c.totalShown)) *
+                              100
+                          )
+                        : 0}
+                      %
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="mb-4 text-xl font-semibold">
+              Detection by Graph Type
+            </h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Graph Type</TableHead>
+                  <TableHead className="text-right">Shown</TableHead>
+                  <TableHead className="text-right">Noticed</TableHead>
+                  <TableHead className="text-right">Detection Rate</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {graphTypeStats.map((c, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="capitalize">
+                      {c.graphType ?? "—"}
+                    </TableCell>
                     <TableCell className="text-right">{c.totalShown}</TableCell>
                     <TableCell className="text-right">
                       {Number(c.noticedCount ?? 0)}

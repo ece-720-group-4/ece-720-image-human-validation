@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { images, injectionTexts, raters, responses } from "@/db/schema";
+import {
+  graphTypes,
+  images,
+  injectionTexts,
+  raters,
+  responses,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -15,13 +21,15 @@ export async function GET(request: NextRequest) {
       raterKey: raters.key,
       raterName: raters.name,
       imageFilename: images.filename,
-      imageCategory: images.category,
-      imageContrast: images.contrast,
+      graphType: graphTypes.name,
+      imageOpacity: images.opacity,
       imageFontSize: images.fontSize,
-      imagePosition: images.position,
+      imagePositionX: images.positionX,
+      imagePositionY: images.positionY,
       imageHasInjection: images.hasInjection,
       injectionTextContent: injectionTexts.content,
       injectionTextLabel: injectionTexts.label,
+      injectionTextAiPrompt: injectionTexts.aiPrompt,
       noticedAnomaly: responses.noticedAnomaly,
       responseTimeMs: responses.responseTimeMs,
       respondedAt: responses.createdAt,
@@ -29,10 +37,20 @@ export async function GET(request: NextRequest) {
     .from(responses)
     .innerJoin(raters, eq(responses.raterId, raters.id))
     .innerJoin(images, eq(responses.imageId, images.id))
+    .leftJoin(graphTypes, eq(images.graphTypeId, graphTypes.id))
     .leftJoin(injectionTexts, eq(images.injectionTextId, injectionTexts.id))
     .orderBy(responses.createdAt);
 
-  const headers = Object.keys(allResponses[0] ?? {});
+  if (allResponses.length === 0) {
+    return new Response("No responses yet.\n", {
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": "attachment; filename=responses.csv",
+      },
+    });
+  }
+
+  const headers = Object.keys(allResponses[0]);
   const csvRows = [
     headers.join(","),
     ...allResponses.map((row) =>
