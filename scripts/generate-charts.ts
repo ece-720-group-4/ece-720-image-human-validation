@@ -24,8 +24,8 @@ const HEIGHT = 500;
 const GRAPH_TYPES = ["line", "bar", "pie"] as const;
 type GraphType = (typeof GRAPH_TYPES)[number];
 
-const OPACITY_LEVELS = [0.08, 0.15, 0.25, 0.4, 0.6];
-const FONT_SIZES = [3, 5, 7, 9, 12];
+const OPACITY_LEVELS = [0.3, 0.35, 0.4, 0.5, 0.6];
+const FONT_SIZES = [5, 7, 9, 11, 12];
 
 const INJECTED_TEXTS = [
   {
@@ -293,6 +293,15 @@ async function renderBarChart(
   });
 }
 
+const PIE_COLORS = [
+  "rgba(59, 130, 246, 0.8)",
+  "rgba(239, 68, 68, 0.8)",
+  "rgba(34, 197, 94, 0.8)",
+  "rgba(234, 179, 8, 0.8)",
+  "rgba(168, 85, 247, 0.8)",
+  "rgba(236, 72, 153, 0.8)",
+];
+
 async function renderPieChart(
   pieData: ReturnType<typeof generatePieData>
 ): Promise<Buffer> {
@@ -302,23 +311,14 @@ async function renderPieChart(
     backgroundColour: "white",
   });
 
-  const colors = [
-    "rgba(59, 130, 246, 0.8)",
-    "rgba(239, 68, 68, 0.8)",
-    "rgba(34, 197, 94, 0.8)",
-    "rgba(234, 179, 8, 0.8)",
-    "rgba(168, 85, 247, 0.8)",
-    "rgba(236, 72, 153, 0.8)",
-  ];
-
-  return await renderer.renderToBuffer({
+  const chartBuffer = await renderer.renderToBuffer({
     type: "pie",
     data: {
       labels: pieData.labels,
       datasets: [
         {
           data: pieData.data,
-          backgroundColor: colors.slice(0, pieData.labels.length),
+          backgroundColor: PIE_COLORS.slice(0, pieData.labels.length),
           borderColor: "#fff",
           borderWidth: 2,
         },
@@ -332,9 +332,40 @@ async function renderPieChart(
       },
     },
   });
+
+  // Draw percentage labels manually on each slice
+  const canvas = createCanvas(WIDTH, HEIGHT);
+  const ctx = canvas.getContext("2d");
+  const img = new CanvasImage();
+  img.src = chartBuffer;
+  ctx.drawImage(img, 0, 0, WIDTH, HEIGHT);
+
+  const total = pieData.data.reduce((a, b) => a + b, 0);
+  const centerX = WIDTH / 2;
+  const centerY = (HEIGHT - 60) / 2 + 30; // account for title and legend
+  const radius = Math.min(centerX, centerY - 30) * 0.55;
+
+  let startAngle = -Math.PI / 2;
+  for (let i = 0; i < pieData.data.length; i++) {
+    const sliceAngle = (pieData.data[i] / total) * 2 * Math.PI;
+    const midAngle = startAngle + sliceAngle / 2;
+    const labelR = radius * 0.65;
+    const lx = centerX + Math.cos(midAngle) * labelR;
+    const ly = centerY + Math.sin(midAngle) * labelR;
+    const pct = Math.round((pieData.data[i] / total) * 100);
+
+    ctx.font = "bold 14px Arial";
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${pct}%`, lx, ly);
+    startAngle += sliceAngle;
+  }
+
+  return canvas.toBuffer("image/png");
 }
 
-// --- Text overlay with background color sampling ---
+// --- Text overlay with darker shade of background ---
 
 function overlayText(
   chartBuffer: Buffer,
@@ -359,11 +390,18 @@ function overlayText(
     Math.max(0, Math.round(posX + textWidth / 2)),
     WIDTH - 1
   );
-  const sampleY = Math.min(Math.max(0, Math.round(posY - fontSize / 2)), HEIGHT - 1);
+  const sampleY = Math.min(
+    Math.max(0, Math.round(posY - fontSize / 2)),
+    HEIGHT - 1
+  );
   const pixel = ctx.getImageData(sampleX, sampleY, 1, 1).data;
   const [r, g, b] = pixel;
 
-  ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  // Darken the background color: opacity controls how much darker (0.3 = subtle, 0.6 = strong)
+  const dr = Math.round(r * (1 - opacity));
+  const dg = Math.round(g * (1 - opacity));
+  const db = Math.round(b * (1 - opacity));
+  ctx.fillStyle = `rgb(${dr}, ${dg}, ${db})`;
   ctx.fillText(text, posX, posY);
 
   return canvas.toBuffer("image/png");
