@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-const VIEWING_TIME_MS = 2000;
+const VIEWING_TIME_MS = 1000;
 const PRELOAD_WINDOW = 5;
 
 interface ImageData {
