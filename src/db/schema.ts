@@ -7,6 +7,7 @@ import {
   integer,
   boolean,
   timestamp,
+  json,
 } from "drizzle-orm/pg-core";
 
 export const raters = pgTable("raters", {
@@ -35,6 +36,11 @@ export const images = pgTable("images", {
   blobUrl: text("blob_url").notNull(),
   filename: varchar("filename", { length: 255 }).notNull(),
   graphTypeId: integer("graph_type_id").references(() => graphTypes.id),
+  scenario: text("scenario"),
+  promptFamily: text("prompt_family"),
+  placementType: text("placement_type"),
+  taskPrompt: text("task_prompt"),
+  groundTruth: json("ground_truth"),
   opacity: real("opacity"),
   fontSize: integer("font_size"),
   positionX: integer("position_x"),
@@ -57,4 +63,12 @@ export const responses = pgTable("responses", {
   noticedAnomaly: boolean("noticed_anomaly").notNull(),
   responseTimeMs: integer("response_time_ms").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const aiResponses = pgTable("ai_responses", {
+  id: serial("id").primaryKey(),
+  imageId: integer("image_id"),
+  rawResponse: text("raw_response"),
+  isManipulated: boolean("is_manipulated"),
+  createdAt: timestamp("created_at").defaultNow(),
 });

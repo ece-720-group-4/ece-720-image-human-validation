@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { images, raters, responses } from "@/db/schema";
-import { eq, notInArray, sql } from "drizzle-orm";
+import { and, eq, like, notInArray, sql } from "drizzle-orm";
+const DATASET_FILENAME_PATTERN = "%trial-%";
 
 export async function GET(request: NextRequest) {
   const key = request.nextUrl.searchParams.get("key");
@@ -23,19 +24,35 @@ export async function GET(request: NextRequest) {
     .where(eq(responses.raterId, rater.id));
 
   const remaining = await db
-    .select({ id: images.id, blobUrl: images.blobUrl, filename: images.filename })
+    .select({
+      id: images.id,
+      blobUrl: images.blobUrl,
+      filename: images.filename,
+    })
     .from(images)
-    .where(notInArray(images.id, answeredImageIds))
+    .where(
+      and(
+        notInArray(images.id, answeredImageIds),
+        like(images.filename, DATASET_FILENAME_PATTERN)
+      )
+    )
     .orderBy(sql`RANDOM()`);
 
   const totalImages = await db
     .select({ count: sql<number>`count(*)` })
-    .from(images);
+    .from(images)
+    .where(like(images.filename, DATASET_FILENAME_PATTERN));
 
   const answeredCount = await db
     .select({ count: sql<number>`count(*)` })
     .from(responses)
-    .where(eq(responses.raterId, rater.id));
+    .innerJoin(images, eq(responses.imageId, images.id))
+    .where(
+      and(
+        eq(responses.raterId, rater.id),
+        like(images.filename, DATASET_FILENAME_PATTERN)
+      )
+    );
 
   return NextResponse.json({
     images: remaining,
