@@ -326,13 +326,13 @@ function RateContent() {
                 )}
               </div>
 
-              <div className="flex h-80 w-full items-center justify-center rounded-md border bg-muted/30">
+              <div className="flex h-136 w-full items-center justify-center rounded-md border bg-muted/30">
                 {timeLeft > 0 ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={blobSrc(currentImage.blobUrl)}
                     alt="Chart to evaluate"
-                    className="max-h-full max-w-full object-contain"
+                    className="max-h-full max-w-full object-contain p-2"
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">
