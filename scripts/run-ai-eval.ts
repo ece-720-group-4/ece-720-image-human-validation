@@ -50,7 +50,7 @@ async function main() {
       AND it.injection_check IS NOT NULL
     GROUP BY i.id, it.ai_prompt, it.injection_check
     ORDER BY miss_count DESC
-    LIMIT 2
+    LIMIT 10
   `
 
   console.log(`Evaluating ${images.length} images (top 50 by human misses)...`)
