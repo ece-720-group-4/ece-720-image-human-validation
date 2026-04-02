@@ -84,12 +84,20 @@ export default async function AdminPage({ searchParams }: Props) {
       <div className="mx-auto max-w-5xl space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <a
-            href={`/api/admin/export?key=${encodeURIComponent(key!)}`}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
-          >
-            Export CSV
-          </a>
+          <div className="flex gap-2">
+            <a
+              href={`/admin/ai-review?key=${encodeURIComponent(key!)}`}
+              className="rounded-md border px-4 py-2 text-sm hover:bg-muted"
+            >
+              AI Review
+            </a>
+            <a
+              href={`/api/admin/export?key=${encodeURIComponent(key!)}`}
+              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+            >
+              Export CSV
+            </a>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4">

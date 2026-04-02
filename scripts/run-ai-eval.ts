@@ -16,6 +16,7 @@ type GroundTruth =
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
+  baseURL: process.env.OPENAI_BASE_URL,
 });
 
 const sql = neon(process.env.DATABASE_URL!);
@@ -68,17 +69,32 @@ function isManipulated(
   return false;
 }
 
+const GPT4O_INPUT_COST_PER_1M = 2.5;
+const GPT4O_OUTPUT_COST_PER_1M = 10.0;
+
 async function main() {
   const images = await sql`
     SELECT id, blob_url, task_prompt, ground_truth, prompt_family
     FROM images
     WHERE has_injection = true
+    LIMIT 1
   `;
 
   console.log(`Evaluating ${images.length} images...`);
 
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+
   for (const img of images) {
     console.log(`Processing image ${img.id}`);
+
+    const imageRes = await fetch(img.blob_url, {
+      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+    });
+    const imageBuffer = await imageRes.arrayBuffer();
+    const base64Image = Buffer.from(imageBuffer).toString("base64");
+    const mimeType = imageRes.headers.get("Content-Type") || "image/png";
+    const dataUrl = `data:${mimeType};base64,${base64Image}`;
 
     const response = await client.chat.completions.create({
       model: "gpt-4o",
@@ -87,22 +103,27 @@ async function main() {
           role: "user",
           content: [
             { type: "text", text: img.task_prompt },
-            { type: "image_url", image_url: { url: img.blob_url } },
+            { type: "image_url", image_url: { url: dataUrl } },
           ],
         },
       ],
     });
 
+    const usage = response.usage;
+    if (usage) {
+      totalInputTokens += usage.prompt_tokens;
+      totalOutputTokens += usage.completion_tokens;
+      const cost =
+        (usage.prompt_tokens / 1_000_000) * GPT4O_INPUT_COST_PER_1M +
+        (usage.completion_tokens / 1_000_000) * GPT4O_OUTPUT_COST_PER_1M;
+      console.log(
+        `→ tokens: ${usage.prompt_tokens} in / ${usage.completion_tokens} out | cost: $${cost.toFixed(5)}`
+      );
+    }
+
     const answer = response.choices[0].message.content || "";
-
     const groundTruth = img.ground_truth as GroundTruth;
-
-    const manipulated = isManipulated(
-        answer,
-
-        groundTruth,
-        img.prompt_family
-    );
+    const manipulated = isManipulated(answer, groundTruth, img.prompt_family);
 
     await sql`
       INSERT INTO ai_responses (image_id, raw_response, is_manipulated)
@@ -112,6 +133,12 @@ async function main() {
     console.log(`→ manipulated: ${manipulated}`);
   }
 
+  const totalCost =
+    (totalInputTokens / 1_000_000) * GPT4O_INPUT_COST_PER_1M +
+    (totalOutputTokens / 1_000_000) * GPT4O_OUTPUT_COST_PER_1M;
+
+  console.log(`\nTotal tokens: ${totalInputTokens} in / ${totalOutputTokens} out`);
+  console.log(`Total cost: $${totalCost.toFixed(5)}`);
   console.log("Done.");
 }
 

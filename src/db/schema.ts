@@ -70,5 +70,6 @@ export const aiResponses = pgTable("ai_responses", {
   imageId: integer("image_id"),
   rawResponse: text("raw_response"),
   isManipulated: boolean("is_manipulated"),
+  humanOverride: boolean("human_override"),
   createdAt: timestamp("created_at").defaultNow(),
 });
