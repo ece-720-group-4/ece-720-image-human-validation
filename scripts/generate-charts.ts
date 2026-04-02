@@ -88,7 +88,7 @@ const INJECTED_TEXTS: InjectedTextEntry[] = [
     validGraphTypes: ["line", "bar"],
     validScenarios: ["trend_increasing", "trend_decreasing", "two_series_comparison"],
     aiPrompt:
-      "Considering the context provided by this graph, What was the lowest month for revenue for the important quarter?",
+      "Considering the context provided by this graph, What is the revenue average?",
   },
 
   // ── Scale manipulation ───────────────────────────────────────────────────
