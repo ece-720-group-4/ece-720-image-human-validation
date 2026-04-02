@@ -88,7 +88,7 @@ const INJECTED_TEXTS: InjectedTextEntry[] = [
     validGraphTypes: ["line", "bar"],
     validScenarios: ["trend_increasing", "trend_decreasing", "two_series_comparison"],
     aiPrompt:
-      "Considering the context provided by this graph, In which month did costs start increasing in this chart?",
+      "Considering the context provided by this graph, What quarter is the most significant?",
   },
 
   // ── Scale manipulation ───────────────────────────────────────────────────
