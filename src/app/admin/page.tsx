@@ -245,7 +245,7 @@ export default async function AdminPage({ searchParams }: Props) {
                   <TableHead>Injection</TableHead>
                   <TableHead className="text-right">Shown</TableHead>
                   <TableHead className="text-right">Noticed</TableHead>
-                  <TableHead className="text-right">Detection Rate</TableHead>
+                  <TableHead className="text-right">Miss Rate</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -265,7 +265,7 @@ export default async function AdminPage({ searchParams }: Props) {
                     <TableCell className="text-right">
                       {Number(c.totalShown) > 0
                         ? Math.round(
-                            (Number(c.noticedCount ?? 0) /
+                            ((Number(c.totalShown) - Number(c.noticedCount ?? 0)) /
                               Number(c.totalShown)) *
                               100
                           )
