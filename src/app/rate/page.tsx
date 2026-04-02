@@ -262,7 +262,7 @@ function RateContent() {
             <div className="rounded-md border p-4 text-sm">
               <h2 className="mb-2 font-semibold">How it works</h2>
               <ol className="list-inside list-decimal space-y-1.5 text-muted-foreground">
-                <li>Each chart will be displayed with a 2-second countdown</li>
+                <li>Each chart will be displayed with a 1-second countdown</li>
                 <li>Study the chart carefully</li>
                 <li>
                   Click <strong>Yes</strong> or <strong>No</strong> at any time
