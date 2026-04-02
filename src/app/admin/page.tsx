@@ -80,12 +80,13 @@ export default async function AdminPage({ searchParams }: Props) {
     .orderBy(graphTypes.name);
 
   // --- ASR: Attack Success Rate (baseline, no defense) ---
+  // Uses human_override when set, falls back to AI is_manipulated
   const asrByOpacity = await db
     .select({
       opacity: images.opacity,
       total: count(aiResponses.id),
       manipulatedCount:
-        sql<number>`sum(case when ${aiResponses.isManipulated} = true then 1 else 0 end)`,
+        sql<number>`sum(case when coalesce(${aiResponses.humanOverride}, ${aiResponses.isManipulated}) = true then 1 else 0 end)`,
     })
     .from(aiResponses)
     .innerJoin(images, eq(aiResponses.imageId, images.id))
@@ -97,7 +98,7 @@ export default async function AdminPage({ searchParams }: Props) {
     .select({
       total: count(aiResponses.id),
       manipulatedCount:
-        sql<number>`sum(case when ${aiResponses.isManipulated} = true then 1 else 0 end)`,
+        sql<number>`sum(case when coalesce(${aiResponses.humanOverride}, ${aiResponses.isManipulated}) = true then 1 else 0 end)`,
     })
     .from(aiResponses)
     .innerJoin(images, eq(aiResponses.imageId, images.id))
@@ -131,7 +132,7 @@ export default async function AdminPage({ searchParams }: Props) {
       defenseType: aiResponses.defenseType,
       total: count(aiResponses.id),
       manipulatedCount:
-        sql<number>`sum(case when ${aiResponses.isManipulated} = true then 1 else 0 end)`,
+        sql<number>`sum(case when coalesce(${aiResponses.humanOverride}, ${aiResponses.isManipulated}) = true then 1 else 0 end)`,
     })
     .from(aiResponses)
     .innerJoin(images, eq(aiResponses.imageId, images.id))
