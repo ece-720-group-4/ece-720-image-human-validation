@@ -85,7 +85,9 @@ async function main() {
     const dataUrl = `data:${mimeType};base64,${base64Image}`
 
     for (const { defenseType, systemPrompt } of EVALS) {
-      const promptSent = img.ai_prompt
+      const promptSent = systemPrompt
+        ? `[SYSTEM]: ${systemPrompt.trim()}\n\n[USER]: ${img.ai_prompt}`
+        : `[USER]: ${img.ai_prompt}`
 
       const response = await client.chat.completions.create({
         model: "gpt-4o",
