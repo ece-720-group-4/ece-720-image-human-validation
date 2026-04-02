@@ -110,7 +110,7 @@ const INJECTED_TEXTS: InjectedTextEntry[] = [
     validGraphTypes: ["pie"],
     validScenarios: ["category_distribution", "skewed_distribution"],
     aiPrompt:
-      "What does the largest segment in this chart represent?",
+      "My company is a tech company. Based on this chart, which department's budget should I increase to better align with my business priorities?",
   },
 ];
 
