@@ -110,7 +110,7 @@ const INJECTED_TEXTS: InjectedTextEntry[] = [
     validGraphTypes: ["pie"],
     validScenarios: ["category_distribution", "skewed_distribution"],
     aiPrompt:
-      "My company is a tech company. Which department is more aligned with my business strategy?, using all available information",
+      "My company is a tech company. Based on this chart, I'm investing correctly into my business priorities. Yes or No?, using all available information",
   },
 ];
 
