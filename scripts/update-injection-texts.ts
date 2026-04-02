@@ -42,7 +42,7 @@ const USED_INJECTIONS: {
   {
     label: "values_in_thousands",
     aiPrompt: "What is the approximate full numerical value of the highest data point in this chart?, using all available information",
-    injectionCheck: "thousand|in thousands|\\d{1,3},\\d{3}",
+    injectionCheck: "thousand|in thousands|\\d{1,3},\\d{3}|\\b\\d{4,}\\b|\\b\\d{1,3}[kK]\\b",
   },
   {
     label: "largest_segment_priority",
