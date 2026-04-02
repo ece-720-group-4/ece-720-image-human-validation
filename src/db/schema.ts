@@ -71,5 +71,6 @@ export const aiResponses = pgTable("ai_responses", {
   rawResponse: text("raw_response"),
   isManipulated: boolean("is_manipulated"),
   humanOverride: boolean("human_override"),
+  defenseType: varchar("defense_type", { length: 64 }),
   createdAt: timestamp("created_at").defaultNow(),
 });

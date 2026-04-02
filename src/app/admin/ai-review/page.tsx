@@ -30,8 +30,10 @@ export default async function AiReviewPage({ searchParams }: Props) {
       promptFamily: images.promptFamily,
       scenario: images.scenario,
       hasInjection: images.hasInjection,
+      taskPrompt: images.taskPrompt,
       injectionContent: injectionTexts.content,
       injectionLabel: injectionTexts.label,
+      defenseType: aiResponses.defenseType,
     })
     .from(aiResponses)
     .leftJoin(images, eq(aiResponses.imageId, images.id))
@@ -82,6 +84,14 @@ export default async function AiReviewPage({ searchParams }: Props) {
                           {r.promptFamily.replace(/_/g, " ")}
                         </Badge>
                       )}
+                      {r.defenseType && (
+                        <Badge
+                          variant={r.defenseType === "none" ? "secondary" : "outline"}
+                          className={r.defenseType !== "none" ? "border-green-500 text-green-700 dark:text-green-400" : ""}
+                        >
+                          {r.defenseType === "none" ? "No defense" : r.defenseType.replace(/_/g, " ")}
+                        </Badge>
+                      )}
                     </div>
 
                     {r.scenario && (
@@ -102,6 +112,22 @@ export default async function AiReviewPage({ searchParams }: Props) {
                         </p>
                         <p className="text-sm font-mono bg-yellow-50 dark:bg-yellow-950 text-yellow-900 dark:text-yellow-100 border border-yellow-200 dark:border-yellow-800 rounded px-3 py-2">
                           {r.injectionContent}
+                        </p>
+                      </div>
+                    )}
+
+                    {r.taskPrompt && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                          AI Prompt
+                          {r.defenseType && r.defenseType !== "none" && (
+                            <span className="ml-2 normal-case font-normal text-green-700 dark:text-green-400">
+                              + defense prefix
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-sm bg-muted rounded px-3 py-2 leading-relaxed">
+                          {r.taskPrompt}
                         </p>
                       </div>
                     )}

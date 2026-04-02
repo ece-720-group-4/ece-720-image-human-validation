@@ -13,7 +13,9 @@
     "db:studio": "drizzle-kit studio",
     "generate-charts": "tsx scripts/generate-charts.ts",
     "generate-keys": "tsx scripts/generate-rater-keys.ts",
-    "flush-blobs": "tsx scripts/flush-blobs.ts"
+    "flush-blobs": "tsx scripts/flush-blobs.ts",
+    "ai-eval": "tsx scripts/run-ai-eval.ts",
+    "ai-eval-defended": "tsx scripts/run-ai-eval-defended.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
