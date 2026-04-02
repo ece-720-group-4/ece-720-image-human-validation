@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { aiResponses, images } from "@/db/schema";
+import { aiResponses, images, injectionTexts } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,9 +30,12 @@ export default async function AiReviewPage({ searchParams }: Props) {
       promptFamily: images.promptFamily,
       scenario: images.scenario,
       hasInjection: images.hasInjection,
+      injectionContent: injectionTexts.content,
+      injectionLabel: injectionTexts.label,
     })
     .from(aiResponses)
     .leftJoin(images, eq(aiResponses.imageId, images.id))
+    .leftJoin(injectionTexts, eq(images.injectionTextId, injectionTexts.id))
     .orderBy(aiResponses.id);
 
   return (
@@ -85,6 +88,22 @@ export default async function AiReviewPage({ searchParams }: Props) {
                       <p className="text-sm text-muted-foreground font-mono truncate">
                         {r.scenario}
                       </p>
+                    )}
+
+                    {r.injectionContent && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                          Injection Prompt
+                          {r.injectionLabel && (
+                            <span className="ml-2 normal-case font-normal">
+                              ({r.injectionLabel})
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-sm font-mono bg-yellow-50 dark:bg-yellow-950 text-yellow-900 dark:text-yellow-100 border border-yellow-200 dark:border-yellow-800 rounded px-3 py-2">
+                          {r.injectionContent}
+                        </p>
+                      </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-4 text-sm">
