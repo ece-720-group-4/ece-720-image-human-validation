@@ -42,7 +42,21 @@ export default async function AiReviewPage({ searchParams }: Props) {
     .from(aiResponses)
     .leftJoin(images, eq(aiResponses.imageId, images.id))
     .leftJoin(injectionTexts, eq(images.injectionTextId, injectionTexts.id))
-    .orderBy(aiResponses.id);
+    .orderBy(aiResponses.imageId, aiResponses.id);
+
+  // Group by imageId
+  const grouped = new Map<
+    number,
+    { image: (typeof results)[0]; evals: (typeof results) }
+  >();
+  for (const row of results) {
+    const id = row.imageId ?? -1;
+    if (!grouped.has(id)) {
+      grouped.set(id, { image: row, evals: [] });
+    }
+    grouped.get(id)!.evals.push(row);
+  }
+  const cards = Array.from(grouped.values());
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -51,7 +65,7 @@ export default async function AiReviewPage({ searchParams }: Props) {
           <div>
             <h1 className="text-3xl font-bold">AI Review</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {results.length} AI evaluations
+              {cards.length} images · {results.length} evaluations
             </p>
           </div>
           <a
@@ -63,129 +77,153 @@ export default async function AiReviewPage({ searchParams }: Props) {
         </div>
 
         <div className="grid gap-6">
-          {results.map((r) => (
-            <Card key={r.aiId}>
+          {cards.map(({ image: img, evals }) => (
+            <Card key={img.imageId}>
               <CardContent className="pt-6">
                 <div className="flex gap-6">
+                  {/* Image */}
                   <div className="shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`/api/blob?url=${encodeURIComponent(r.blobUrl ?? "")}`}
-                      alt={r.filename ?? "chart"}
+                      src={`/api/blob?url=${encodeURIComponent(img.blobUrl ?? "")}`}
+                      alt={img.filename ?? "chart"}
                       className="w-64 rounded border object-contain"
                     />
                   </div>
 
-                  <div className="flex flex-col gap-3 flex-1 min-w-0">
+                  {/* Right column */}
+                  <div className="flex flex-col gap-4 flex-1 min-w-0">
+
+                    {/* Shared metadata badges */}
                     <div className="flex flex-wrap gap-2 items-center">
                       <span className="font-mono text-sm text-muted-foreground">
-                        #{r.aiId}
+                        img #{img.imageId}
                       </span>
-                      <Badge variant={r.hasInjection ? "default" : "secondary"}>
-                        {r.hasInjection ? "Injected" : "Control"}
+                      <Badge variant={img.hasInjection ? "default" : "secondary"}>
+                        {img.hasInjection ? "Injected" : "Control"}
                       </Badge>
-                      {Number(r.missCount) > 0 && (
+                      {Number(img.missCount) > 0 && (
                         <Badge variant="outline" className="border-orange-400 text-orange-600 dark:text-orange-400">
-                          {Number(r.missCount)} miss{Number(r.missCount) !== 1 ? "es" : ""}
+                          {Number(img.missCount)} miss{Number(img.missCount) !== 1 ? "es" : ""}
                         </Badge>
                       )}
-                      {r.promptFamily && (
+                      {img.promptFamily && (
                         <Badge variant="outline" className="capitalize">
-                          {r.promptFamily.replace(/_/g, " ")}
-                        </Badge>
-                      )}
-                      {r.defenseType && (
-                        <Badge
-                          variant={r.defenseType === "none" ? "secondary" : "outline"}
-                          className={r.defenseType !== "none" ? "border-green-500 text-green-700 dark:text-green-400" : ""}
-                        >
-                          {r.defenseType === "none" ? "No defense" : r.defenseType.replace(/_/g, " ")}
+                          {img.promptFamily.replace(/_/g, " ")}
                         </Badge>
                       )}
                     </div>
 
-                    {r.scenario && (
+                    {/* Scenario */}
+                    {img.scenario && (
                       <p className="text-sm text-muted-foreground font-mono truncate">
-                        {r.scenario}
+                        {img.scenario}
                       </p>
                     )}
 
-                    {r.injectionContent && (
+                    {/* Injection prompt */}
+                    {img.injectionContent && (
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                           Injection Prompt
-                          {r.injectionLabel && (
+                          {img.injectionLabel && (
                             <span className="ml-2 normal-case font-normal">
-                              ({r.injectionLabel})
+                              ({img.injectionLabel})
                             </span>
                           )}
                         </p>
                         <p className="text-sm font-mono bg-yellow-50 dark:bg-yellow-950 text-yellow-900 dark:text-yellow-100 border border-yellow-200 dark:border-yellow-800 rounded px-3 py-2">
-                          {r.injectionContent}
+                          {img.injectionContent}
                         </p>
                       </div>
                     )}
 
-                    {r.taskPrompt && (
+                    {/* Task prompt (shared) */}
+                    {img.taskPrompt && (
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                          AI Prompt
-                          {r.defenseType && r.defenseType !== "none" && (
-                            <span className="ml-2 normal-case font-normal text-green-700 dark:text-green-400">
-                              + defense prefix
-                            </span>
-                          )}
+                          Task Prompt
                         </p>
                         <p className="text-sm bg-muted rounded px-3 py-2 leading-relaxed">
-                          {r.taskPrompt}
+                          {img.taskPrompt}
                         </p>
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                          AI Decision
-                        </p>
-                        <Badge
-                          variant={r.isManipulated ? "destructive" : "secondary"}
+                    {/* Per-eval sections */}
+                    <div className={`grid gap-4 ${evals.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+                      {evals.map((e) => (
+                        <div
+                          key={e.aiId}
+                          className="rounded-lg border p-3 flex flex-col gap-3"
                         >
-                          {r.isManipulated === null
-                            ? "—"
-                            : r.isManipulated
-                            ? "Manipulated"
-                            : "Not manipulated"}
-                        </Badge>
-                      </div>
+                          {/* Defense badge */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground font-mono">
+                              #{e.aiId}
+                            </span>
+                            {e.defenseType && (
+                              <Badge
+                                variant={e.defenseType === "none" ? "secondary" : "outline"}
+                                className={e.defenseType !== "none" ? "border-green-500 text-green-700 dark:text-green-400" : ""}
+                              >
+                                {e.defenseType === "none" ? "No defense" : e.defenseType.replace(/_/g, " ")}
+                              </Badge>
+                            )}
+                            {e.defenseType !== "none" && (
+                              <span className="text-xs text-green-700 dark:text-green-400">
+                                + defense prefix
+                              </span>
+                            )}
+                          </div>
 
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                          Human Override
-                        </p>
-                        <AiOverrideToggle
-                          aiResponseId={r.aiId}
-                          initialOverride={r.humanOverride ?? null}
-                          adminKey={key!}
-                        />
-                      </div>
+                          {/* AI Decision + Override */}
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                                AI Decision
+                              </p>
+                              <Badge variant={e.isManipulated ? "destructive" : "secondary"}>
+                                {e.isManipulated === null
+                                  ? "—"
+                                  : e.isManipulated
+                                  ? "Manipulated"
+                                  : "Not manipulated"}
+                              </Badge>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                                Human Override
+                              </p>
+                              <AiOverrideToggle
+                                aiResponseId={e.aiId}
+                                initialOverride={e.humanOverride ?? null}
+                                adminKey={key!}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Raw response */}
+                          {e.rawResponse && (
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                                AI Response
+                              </p>
+                              <p className="text-sm bg-muted rounded p-3 leading-relaxed">
+                                {e.rawResponse}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-
-                    {r.rawResponse && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                          AI Response
-                        </p>
-                        <p className="text-sm bg-muted rounded p-3 leading-relaxed">
-                          {r.rawResponse}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
           ))}
 
-          {results.length === 0 && (
+          {cards.length === 0 && (
             <p className="text-center text-muted-foreground py-16">
               No AI evaluations yet. Run{" "}
               <code className="font-mono bg-muted px-1 rounded">
