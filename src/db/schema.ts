@@ -76,6 +76,7 @@ export const responses = pgTable("responses", {
 export const aiResponses = pgTable("ai_responses", {
   id: serial("id").primaryKey(),
   imageId: integer("image_id"),
+  promptSent: text("prompt_sent"),
   rawResponse: text("raw_response"),
   isManipulated: boolean("is_manipulated"),
   humanOverride: boolean("human_override"),

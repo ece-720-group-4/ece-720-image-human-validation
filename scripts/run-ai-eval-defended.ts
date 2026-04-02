@@ -85,7 +85,7 @@ async function main() {
     const mimeType = imageRes.headers.get("Content-Type") || "image/png"
     const dataUrl = `data:${mimeType};base64,${base64Image}`
 
-    const defendedPrompt = DEFENSE_PREFIX + img.ai_prompt
+    const promptSent = DEFENSE_PREFIX + img.ai_prompt
 
     const response = await client.chat.completions.create({
       model: "gpt-4o",
@@ -93,7 +93,7 @@ async function main() {
         {
           role: "user",
           content: [
-            { type: "text", text: defendedPrompt },
+            { type: "text", text: promptSent },
             { type: "image_url", image_url: { url: dataUrl } },
           ],
         },
@@ -116,8 +116,8 @@ async function main() {
     const manipulated = isManipulated(answer, img.injection_check)
 
     await sql`
-      INSERT INTO ai_responses (image_id, raw_response, is_manipulated, defense_type)
-      VALUES (${img.id}, ${answer}, ${manipulated}, ${DEFENSE_TYPE})
+      INSERT INTO ai_responses (image_id, prompt_sent, raw_response, is_manipulated, defense_type)
+      VALUES (${img.id}, ${promptSent}, ${answer}, ${manipulated}, ${DEFENSE_TYPE})
     `
 
     console.log(`→ manipulated: ${manipulated}`)
