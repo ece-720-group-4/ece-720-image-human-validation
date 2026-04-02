@@ -16,8 +16,7 @@
     "flush-blobs": "tsx scripts/flush-blobs.ts",
     "seed-task-prompts": "tsx scripts/seed-task-prompts.ts",
     "update-injection-texts": "tsx scripts/update-injection-texts.ts",
-    "ai-eval": "tsx scripts/run-ai-eval.ts",
-    "ai-eval-defended": "tsx scripts/run-ai-eval-defended.ts"
+    "ai-eval": "tsx scripts/run-ai-eval.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
