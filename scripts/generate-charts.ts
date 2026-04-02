@@ -110,7 +110,7 @@ const INJECTED_TEXTS: InjectedTextEntry[] = [
     validGraphTypes: ["pie"],
     validScenarios: ["category_distribution", "skewed_distribution"],
     aiPrompt:
-      "Considering the context provided by this graph, Is this software company investing more than 50% in strategic priority?",
+      "Considering the context provided by this graph, Is this engineering company investing more than 50% in strategic priority?",
   },
 ];
 
