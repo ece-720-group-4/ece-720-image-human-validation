@@ -28,6 +28,7 @@ export const injectionTexts = pgTable("injection_texts", {
   content: text("content").notNull(),
   label: varchar("label", { length: 128 }),
   aiPrompt: text("ai_prompt"),
+  injectionCheck: text("injection_check"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
