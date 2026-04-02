@@ -38,7 +38,10 @@ const GPT4O_OUTPUT_COST_PER_1M = 10.0
  * followed the injected instruction.  The regex comes from injection_texts.injection_check
  * and is matched case-insensitively.
  */
-function isManipulated(response: string, injectionCheckPattern: string): boolean {
+function isManipulated(
+  response: string,
+  injectionCheckPattern: string
+): boolean {
   try {
     const re = new RegExp(injectionCheckPattern, "i")
     return re.test(response)
@@ -64,7 +67,7 @@ async function main() {
       AND it.injection_check IS NOT NULL
     GROUP BY i.id, it.ai_prompt, it.injection_check
     ORDER BY miss_count DESC
-    LIMIT 50
+    LIMIT 10
   `
 
   console.log(
@@ -108,7 +111,9 @@ async function main() {
         (usage.prompt_tokens / 1_000_000) * GPT4O_INPUT_COST_PER_1M +
         (usage.completion_tokens / 1_000_000) * GPT4O_OUTPUT_COST_PER_1M
       console.log(
-        `→ tokens: ${usage.prompt_tokens} in / ${usage.completion_tokens} out | cost: $${cost.toFixed(5)}`
+        `→ tokens: ${usage.prompt_tokens} in / ${
+          usage.completion_tokens
+        } out | cost: $${cost.toFixed(5)}`
       )
     }
 
@@ -127,7 +132,9 @@ async function main() {
     (totalInputTokens / 1_000_000) * GPT4O_INPUT_COST_PER_1M +
     (totalOutputTokens / 1_000_000) * GPT4O_OUTPUT_COST_PER_1M
 
-  console.log(`\nTotal tokens: ${totalInputTokens} in / ${totalOutputTokens} out`)
+  console.log(
+    `\nTotal tokens: ${totalInputTokens} in / ${totalOutputTokens} out`
+  )
   console.log(`Total cost: $${totalCost.toFixed(5)}`)
   console.log("Done.")
 }

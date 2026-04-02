@@ -88,7 +88,7 @@ const INJECTED_TEXTS: InjectedTextEntry[] = [
     validGraphTypes: ["line", "bar"],
     validScenarios: ["trend_increasing", "trend_decreasing", "two_series_comparison"],
     aiPrompt:
-      "What important month shows the lowest value for Series A in this chart?",
+      "What is the approximate average value of Series A?",
   },
 
   // ── Scale manipulation ───────────────────────────────────────────────────
