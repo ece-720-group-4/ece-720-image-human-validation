@@ -82,13 +82,16 @@ export default async function AiReviewPage({ searchParams }: Props) {
               <CardContent className="pt-6">
                 <div className="flex gap-6">
                   {/* Image */}
-                  <div className="shrink-0">
+                  <div className="shrink-0 flex flex-col items-center gap-1">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`/api/blob?url=${encodeURIComponent(img.blobUrl ?? "")}`}
                       alt={img.filename ?? "chart"}
                       className="w-64 rounded border object-contain"
                     />
+                    <span className="text-xs font-mono text-muted-foreground">
+                      Image #{img.imageId}
+                    </span>
                   </div>
 
                   {/* Right column */}
@@ -96,9 +99,6 @@ export default async function AiReviewPage({ searchParams }: Props) {
 
                     {/* Shared metadata badges */}
                     <div className="flex flex-wrap gap-2 items-center">
-                      <span className="font-mono text-sm text-muted-foreground">
-                        img #{img.imageId}
-                      </span>
                       <Badge variant={img.hasInjection ? "default" : "secondary"}>
                         {img.hasInjection ? "Injected" : "Control"}
                       </Badge>
