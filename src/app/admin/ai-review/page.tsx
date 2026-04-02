@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { aiResponses, images, injectionTexts } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { AiOverrideToggle } from "@/components/ai-override-toggle";
@@ -34,6 +34,10 @@ export default async function AiReviewPage({ searchParams }: Props) {
       injectionContent: injectionTexts.content,
       injectionLabel: injectionTexts.label,
       defenseType: aiResponses.defenseType,
+      missCount: sql<number>`(
+        SELECT COUNT(*) FROM responses r
+        WHERE r.image_id = ${images.id} AND r.noticed_anomaly = false
+      )`,
     })
     .from(aiResponses)
     .leftJoin(images, eq(aiResponses.imageId, images.id))
@@ -79,6 +83,11 @@ export default async function AiReviewPage({ searchParams }: Props) {
                       <Badge variant={r.hasInjection ? "default" : "secondary"}>
                         {r.hasInjection ? "Injected" : "Control"}
                       </Badge>
+                      {Number(r.missCount) > 0 && (
+                        <Badge variant="outline" className="border-orange-400 text-orange-600 dark:text-orange-400">
+                          {Number(r.missCount)} miss{Number(r.missCount) !== 1 ? "es" : ""}
+                        </Badge>
+                      )}
                       {r.promptFamily && (
                         <Badge variant="outline" className="capitalize">
                           {r.promptFamily.replace(/_/g, " ")}

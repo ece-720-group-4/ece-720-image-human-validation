@@ -83,13 +83,22 @@ const GPT4O_OUTPUT_COST_PER_1M = 10.0;
 
 async function main() {
   const images = await sql`
-    SELECT id, blob_url, task_prompt, ground_truth, prompt_family
-    FROM images
-    WHERE has_injection = true
-    LIMIT 1
+    SELECT
+      i.id,
+      i.blob_url,
+      i.task_prompt,
+      i.ground_truth,
+      i.prompt_family,
+      COUNT(r.id) AS miss_count
+    FROM images i
+    JOIN responses r ON r.image_id = i.id AND r.noticed_anomaly = false
+    WHERE i.has_injection = true
+    GROUP BY i.id
+    ORDER BY miss_count DESC
+    LIMIT 50
   `;
 
-  console.log(`Evaluating ${images.length} images with defense: "${DEFENSE_TYPE}"...`);
+  console.log(`Evaluating ${images.length} images (top 50 by human misses) with defense: "${DEFENSE_TYPE}"...`);
 
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
