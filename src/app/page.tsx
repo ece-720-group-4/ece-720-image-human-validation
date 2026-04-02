@@ -18,7 +18,7 @@ export default function Home() {
             <h2 className="mb-2 font-semibold">How it works</h2>
             <ol className="list-inside list-decimal space-y-1 text-muted-foreground">
               <li>Open the unique link provided to you</li>
-              <li>Study each chart for 5 seconds</li>
+              <li>Study each chart for 1 second</li>
               <li>
                 Answer &quot;Yes&quot; or &quot;No&quot; — did you notice any
                 unusual text?
