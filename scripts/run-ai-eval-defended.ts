@@ -95,7 +95,7 @@ async function main() {
     WHERE i.has_injection = true
     GROUP BY i.id
     ORDER BY miss_count DESC
-    LIMIT 2
+    LIMIT 50
   `
 
   console.log(

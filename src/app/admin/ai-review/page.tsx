@@ -183,11 +183,11 @@ export default async function AiReviewPage({ searchParams }: Props) {
                             </div>
                           )}
 
-                          {/* AI Decision + Override */}
+                          {/* Automatic Decision + Override */}
                           <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
                               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                                AI Decision
+                                Automatic Decision
                               </p>
                               <Badge variant={e.isManipulated ? "destructive" : "secondary"}>
                                 {e.isManipulated === null
