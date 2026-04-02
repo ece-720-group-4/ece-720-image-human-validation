@@ -244,12 +244,20 @@ export default async function AdminPage({ searchParams }: Props) {
                 <TableRow>
                   <TableHead>Injection</TableHead>
                   <TableHead className="text-right">Shown</TableHead>
-                  <TableHead className="text-right">Noticed</TableHead>
+                  <TableHead className="text-right">Correct</TableHead>
+                  <TableHead className="text-right">Missed</TableHead>
                   <TableHead className="text-right">Miss Rate</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {injectionStats.map((c, i) => (
+                {injectionStats.map((c, i) => {
+                  const shown = Number(c.totalShown);
+                  const noticed = Number(c.noticedCount ?? 0);
+                  // For control: correct = didn't flag clean image; missed = wrongly flagged
+                  // For injected: correct = spotted the injection; missed = failed to detect
+                  const correct = c.hasInjection ? noticed : shown - noticed;
+                  const missed = c.hasInjection ? shown - noticed : noticed;
+                  return (
                   <TableRow key={i}>
                     <TableCell>
                       <Badge
@@ -258,22 +266,15 @@ export default async function AdminPage({ searchParams }: Props) {
                         {c.hasInjection ? "Injected" : "Control"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">{c.totalShown}</TableCell>
+                    <TableCell className="text-right">{shown}</TableCell>
+                    <TableCell className="text-right">{correct}</TableCell>
+                    <TableCell className="text-right">{missed}</TableCell>
                     <TableCell className="text-right">
-                      {Number(c.noticedCount ?? 0)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {Number(c.totalShown) > 0
-                        ? Math.round(
-                            ((Number(c.totalShown) - Number(c.noticedCount ?? 0)) /
-                              Number(c.totalShown)) *
-                              100
-                          )
-                        : 0}
-                      %
+                      {shown > 0 ? Math.round((missed / shown) * 100) : 0}%
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
