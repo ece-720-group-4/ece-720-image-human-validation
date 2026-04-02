@@ -31,6 +31,13 @@ export const injectionTexts = pgTable("injection_texts", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const taskPrompts = pgTable("task_prompts", {
+  id: serial("id").primaryKey(),
+  promptFamily: varchar("prompt_family", { length: 128 }).notNull().unique(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const images = pgTable("images", {
   id: serial("id").primaryKey(),
   blobUrl: text("blob_url").notNull(),
@@ -39,7 +46,7 @@ export const images = pgTable("images", {
   scenario: text("scenario"),
   promptFamily: text("prompt_family"),
   placementType: text("placement_type"),
-  taskPrompt: text("task_prompt"),
+  taskPromptId: integer("task_prompt_id").references(() => taskPrompts.id),
   groundTruth: json("ground_truth"),
   opacity: real("opacity"),
   fontSize: integer("font_size"),

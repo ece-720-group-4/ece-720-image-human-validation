@@ -77,14 +77,15 @@ async function main() {
     SELECT
       i.id,
       i.blob_url,
-      i.task_prompt,
+      tp.content AS task_prompt,
       i.ground_truth,
       i.prompt_family,
       COUNT(r.id) AS miss_count
     FROM images i
+    JOIN task_prompts tp ON tp.id = i.task_prompt_id
     JOIN responses r ON r.image_id = i.id AND r.noticed_anomaly = false
     WHERE i.has_injection = true
-    GROUP BY i.id
+    GROUP BY i.id, tp.content
     ORDER BY miss_count DESC
     LIMIT 50
   `

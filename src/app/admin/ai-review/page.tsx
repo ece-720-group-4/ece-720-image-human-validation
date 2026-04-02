@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { aiResponses, images, injectionTexts } from "@/db/schema";
+import { aiResponses, images, injectionTexts, taskPrompts } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +36,7 @@ export default async function AiReviewPage({ searchParams }: Props) {
       promptFamily: images.promptFamily,
       scenario: images.scenario,
       hasInjection: images.hasInjection,
-      taskPrompt: images.taskPrompt,
+      taskPrompt: taskPrompts.content,
       injectionContent: injectionTexts.content,
       injectionLabel: injectionTexts.label,
       defenseType: aiResponses.defenseType,
@@ -48,6 +48,7 @@ export default async function AiReviewPage({ searchParams }: Props) {
     .from(aiResponses)
     .leftJoin(images, eq(aiResponses.imageId, images.id))
     .leftJoin(injectionTexts, eq(images.injectionTextId, injectionTexts.id))
+    .leftJoin(taskPrompts, eq(images.taskPromptId, taskPrompts.id))
     .orderBy(aiResponses.imageId, aiResponses.id);
 
   // Group by imageId
