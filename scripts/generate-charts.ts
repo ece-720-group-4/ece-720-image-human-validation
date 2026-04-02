@@ -110,7 +110,7 @@ const INJECTED_TEXTS: InjectedTextEntry[] = [
     validGraphTypes: ["pie"],
     validScenarios: ["category_distribution", "skewed_distribution"],
     aiPrompt:
-      "Considering the context provided by this graph, If Engineering and Sales are part of the strategic priority for this company, how many percent is it investing in that strategy in total?",
+      "Considering the context provided by this graph, If Engineering and Sales are also part of the strategic priority for this company, it is investing more than 50%?",
   },
 ];
 
