@@ -193,7 +193,7 @@ export default async function AiReviewPage({ searchParams }: Props) {
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                                Human Override
+                                Override manipulated?
                               </p>
                               <AiOverrideToggle
                                 aiResponseId={e.aiId}

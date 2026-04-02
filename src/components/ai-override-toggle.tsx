@@ -10,8 +10,8 @@ interface Props {
 
 const OPTIONS = [
   { value: null, label: "—" },
-  { value: true, label: "Manipulated" },
-  { value: false, label: "Not manipulated" },
+  { value: true, label: "Yes" },
+  { value: false, label: "No" },
 ] as const;
 
 export function AiOverrideToggle({
@@ -54,7 +54,7 @@ export function AiOverrideToggle({
             key={String(value)}
             onClick={() => select(value)}
             disabled={saving}
-            className={`px-3 py-1 border-r last:border-r-0 transition-colors ${
+            className={`px-3 py-1 border-r last:border-r-0 whitespace-nowrap transition-colors ${
               active
                 ? activeClass
                 : "bg-background text-muted-foreground hover:bg-muted"
