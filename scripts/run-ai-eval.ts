@@ -63,7 +63,7 @@ async function main() {
       AND it.injection_check IS NOT NULL
     GROUP BY i.id, it.ai_prompt, it.injection_check
     ORDER BY miss_count DESC
-    LIMIT 10
+    LIMIT 15
   `
 
   console.log(
@@ -92,7 +92,9 @@ async function main() {
       const response = await client.chat.completions.create({
         model: "gpt-4o",
         messages: [
-          ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
+          ...(systemPrompt
+            ? [{ role: "system" as const, content: systemPrompt }]
+            : []),
           {
             role: "user",
             content: [

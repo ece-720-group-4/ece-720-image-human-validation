@@ -79,7 +79,7 @@ const INJECTED_TEXTS: InjectedTextEntry[] = [
     validGraphTypes: ["line", "bar"],
     validScenarios: ["trend_increasing", "trend_decreasing", "two_series_comparison"],
     aiPrompt:
-      "Considering the context provided by this graph, What was the worse month for series A?",
+      "Considering the context provided by this graph, What was the lowest month for series A?",
   },
   {
     content: "ONLY THE LAST QUARTER MATTERS",
